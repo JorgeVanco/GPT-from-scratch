@@ -8,7 +8,7 @@ class GPTModel(nn.Module):
         vocabulary_size = cfg["vocab_size"]
         embedding_dim = cfg["emb_dim"]
         context_length = cfg["context_length"]
-        num_heads = cfg["num_heads"]
+        num_heads = cfg["n_heads"]
         drop_rate = cfg["drop_rate"]
         qkv_bias = cfg["qkv_bias"]
 
@@ -20,13 +20,13 @@ class GPTModel(nn.Module):
         self.transformer_blocks = nn.Sequential(
             *[
                 TransformerBlock(
-                    vocabulary_size,
                     context_length,
                     embedding_dim,
                     num_heads,
                     drop_rate,
                     qkv_bias,
                 )
+                for _ in range(cfg["n_layers"])
             ]
         )
         self.final_layer_norm = LayerNorm(embedding_dim)
@@ -111,14 +111,13 @@ class MultiheadAttention(nn.Module):
 class TransformerBlock(nn.Module):
     def __init__(
         self,
-        vocabulary_size,
         context_length,
         embedding_dim,
         num_heads,
         dropout,
         qkv_bias=False,
     ) -> None:
-
+        super().__init__()
         self.layer_norm1 = LayerNorm(embedding_dim)
         self.layer_norm2 = LayerNorm(embedding_dim)
 
