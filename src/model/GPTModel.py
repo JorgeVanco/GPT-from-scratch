@@ -91,7 +91,7 @@ class MultiheadAttention(nn.Module):
         attn_scores = queries @ keys.transpose(
             2, 3
         )  # batch, num_heads, num_tokens, num_tokens
-        bool_mask = self.mask.bool()[num_tokens:, num_tokens:]  # num_tokens, num_tokens
+        bool_mask = self.mask.bool()[:num_tokens, :num_tokens]  # num_tokens, num_tokens
         attn_scores.masked_fill_(
             bool_mask, -torch.inf
         )  # batch, num_heads, num_tokens, num_tokens
@@ -102,7 +102,7 @@ class MultiheadAttention(nn.Module):
 
         z = attn_weights @ values  # batch, num_heads, num_tokens, head_dim
         z = z.transpose(1, 2)  # batch, num_tokens, num_heads, head_dim
-        z = z.view(b, num_tokens, self.d_out)  # batch, num_tokens, d_out
+        z = z.contiguous().view(b, num_tokens, self.d_out)  # batch, num_tokens, d_out
 
         z = self.linear(z)  # batch, num_tokens, d_out
         return z
