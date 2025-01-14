@@ -30,7 +30,7 @@ class GPTModel(nn.Module):
             ]
         )
         self.final_layer_norm = LayerNorm(embedding_dim)
-        self.output_layer = nn.Linear(embedding_dim, vocabulary_size)
+        self.out_head = nn.Linear(embedding_dim, vocabulary_size, bias=False)
 
     def forward(self, x):
         b, token_length = x.shape
@@ -40,7 +40,7 @@ class GPTModel(nn.Module):
         x = self.dropout(x)
         x = self.transformer_blocks(x)
         x = self.final_layer_norm(x)
-        logits = self.output_layer(x)
+        logits = self.out_head(x)
         return logits
 
 
