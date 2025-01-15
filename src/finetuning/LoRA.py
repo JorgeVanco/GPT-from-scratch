@@ -27,6 +27,6 @@ class LinearWithLoRA(nn.Module):
 def replace_linear_with_lora(model: nn.Module, rank, alpha) -> None:
     for name, module in model.named_children():
         if isinstance(module, nn.Linear):
-            setattr(module, name, LinearWithLoRA(module, rank, alpha))
+            setattr(model, name, LinearWithLoRA(module, rank, alpha))
         else:
             replace_linear_with_lora(module, rank, alpha)
