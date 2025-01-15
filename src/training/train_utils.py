@@ -11,6 +11,7 @@ def calc_loss_batch(input_batch, target_batch, model, device) -> torch.Tensor:
     return loss
 
 
+@torch.no_grad()
 def calc_loss_loader(loader, model, device, num_batches=None) -> float:
     total_loss = 0
     if len(loader) == 0:

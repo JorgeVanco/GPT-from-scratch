@@ -12,6 +12,8 @@ class GPTModel(nn.Module):
         drop_rate = cfg["drop_rate"]
         qkv_bias = cfg["qkv_bias"]
 
+        self.context_length = context_length
+
         self.token_embedding = nn.Embedding(vocabulary_size, embedding_dim)
         self.position_embedding = nn.Embedding(context_length, embedding_dim)
 
