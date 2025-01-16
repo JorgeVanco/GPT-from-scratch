@@ -76,8 +76,20 @@ def fine_tune_lora(
     alpha=16,
     eval_freq=100,
     eval_iter=5,
+    start_context="Every effort moves you",
 ) -> tuple:
+    total_params = sum(p.numel() for p in gpt.parameters() if p.requires_grad)
+    print(f"Total trainable parameters before: {total_params:,}")
+
+    for param in gpt.parameters():
+        param.requires_grad = False
+    total_params = sum(p.numel() for p in gpt.parameters() if p.requires_grad)
+    print(f"Total trainable parameters after: {total_params:,}")
     replace_linear_with_lora(model, rank, alpha)
+    model.to(device)
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total trainable LoRA parameters: {total_params:,}")
+    optimizer = torch.optim.AdamW(gpt.parameters(), lr=0.001, weight_decay=0.1)
     return train(
         model,
         train_dataloader,
@@ -87,6 +99,7 @@ def fine_tune_lora(
         device,
         eval_freq,
         eval_iter,
+        start_context,
     )
 
 
