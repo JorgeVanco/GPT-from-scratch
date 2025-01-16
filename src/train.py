@@ -13,6 +13,7 @@ from text_generation import generate_text
 from model import GPTModel
 from config import CHOOSE_MODEL, model_configs
 import matplotlib.pyplot as plt
+import wandb
 
 
 def train(
@@ -29,6 +30,7 @@ def train(
     train_losses, val_losses = [], []
     global_step = -1
     tokens_seen = 0
+
     model.train()
     for epoch in range(epochs):
         for input_batch, target_batch in tqdm(train_dataloader):
@@ -52,6 +54,7 @@ def train(
                     )
                     train_losses.append(train_loss)
                     val_losses.append(val_loss)
+                    wandb.log({"train_loss": train_loss, "val_loss": val_loss})
                     print(
                         f"\nEpoch {epoch+1}/{epochs} - Train loss: {train_loss:.4f} - Val loss: {val_loss:.4f}, Tokens seen: {tokens_seen}"
                     )
@@ -104,6 +107,9 @@ def fine_tune_lora(
 
 
 if __name__ == "__main__":
+
+    wandb.init(project="gpt2")
+
     data_path = "data/the-verdict.txt"
     download_data = True
     start_context = "Every effort moves you"
