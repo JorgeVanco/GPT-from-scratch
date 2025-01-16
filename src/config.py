@@ -3,7 +3,7 @@ INPUT_PROMPT = "Every effort moves"
 BASE_CONFIG = {
     "vocab_size": 50257,
     "context_length": 256,
-    "drop_rate": 0.0,
+    "drop_rate": 0.1,
     "qkv_bias": True,
 }
 model_configs = {

@@ -1,12 +1,17 @@
 import os
 import torch
 from tqdm import tqdm
-from data import download_shakespeare, train_test_split, create_dataloader
+from data import (
+    download_shakespeare,
+    download_the_verdict,
+    train_test_split,
+    create_dataloader,
+)
 from finetuning import replace_linear_with_lora
 from training import calc_loss_batch, calc_loss_loader
 from text_generation import generate_text
 from model import GPTModel
-from config import BASE_CONFIG
+from config import CHOOSE_MODEL, model_configs
 import matplotlib.pyplot as plt
 
 
@@ -19,6 +24,7 @@ def train(
     device,
     eval_freq=100,
     eval_iter=5,
+    start_context="Every effort moves you",
 ) -> tuple:
     train_losses, val_losses = [], []
     global_step = -1
@@ -47,10 +53,12 @@ def train(
                     train_losses.append(train_loss)
                     val_losses.append(val_loss)
                     print(
-                        f"Epoch {epoch+1}/{epochs} - Train loss: {train_loss:.4f} - Val loss: {val_loss:.4f}, Tokens seen: {tokens_seen}"
+                        f"\nEpoch {epoch+1}/{epochs} - Train loss: {train_loss:.4f} - Val loss: {val_loss:.4f}, Tokens seen: {tokens_seen}"
                     )
                     print(
-                        "Generated text:", generate_text(model, "Hello, ", 10, device)
+                        generate_text(model, start_context, 50, device).replace(
+                            "\n", " "
+                        ),
                     )
 
                 model.train()
@@ -83,14 +91,42 @@ def fine_tune_lora(
 
 
 if __name__ == "__main__":
-    data_path = "data/input.txt"
-    download_shakespeare(data_path)
+    data_path = "data/the-verdict.txt"
+    download_data = True
+    start_context = "Every effort moves you"
+
+    if download_data:
+        # download_shakespeare(data_path)
+        download_the_verdict(data_path)
+
     with open(data_path) as fp:
         data = fp.read()
+
+    BASE_CONFIG = {
+        "vocab_size": 50257,
+        "context_length": 256,
+        "drop_rate": 0.1,
+        "qkv_bias": True,
+    }
+
+    CHOOSE_MODEL = "gpt2-small (124M)"
+
+    my_config = {
+        "emb_dim": 200,
+        "n_layers": 2,
+        "n_heads": 4,
+        "context_length": 16,
+    }
+    my_config = None
+    if my_config is not None:
+        BASE_CONFIG.update(my_config)
+    else:
+        BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     train_data, test_data = train_test_split(data, 0.9)
+    torch.manual_seed(123)
     train_dataloader = create_dataloader(
         train_data,
         BASE_CONFIG["context_length"],
@@ -103,7 +139,8 @@ if __name__ == "__main__":
         BASE_CONFIG["context_length"],
         BASE_CONFIG["context_length"],
         2,
-        shuffle=True,
+        shuffle=False,
+        drop_last=False,
     )
     print("Train dataloader length:", len(train_dataloader))
     print("Test dataloader length:", len(test_dataloader))
@@ -111,14 +148,31 @@ if __name__ == "__main__":
     gpt = GPTModel(BASE_CONFIG)
     gpt.to(device)
 
-    optimizer = torch.optim.AdamW(gpt.parameters(), 0.01)
+    print("Model configuration:", BASE_CONFIG)
+    print(f"Model size: {sum(p.numel() for p in gpt.parameters()):,} parameters")
 
+    torch.manual_seed(123)
+    optimizer = torch.optim.AdamW(gpt.parameters(), lr=0.0004, weight_decay=0.1)
+    epochs = 10
     train_losses, val_losses = train(
-        gpt, train_dataloader, test_dataloader, 2, optimizer, device
+        gpt,
+        train_dataloader,
+        test_dataloader,
+        epochs,
+        optimizer,
+        device,
+        eval_freq=5,
+        eval_iter=5,
+        start_context=start_context,
     )
 
+    train_loss = calc_loss_loader(train_dataloader, gpt, device)
+    val_loss = calc_loss_loader(test_dataloader, gpt, device)
+    print(f"Final train loss: {train_loss:.4f}")
+    print(f"Final validation loss: {val_loss:.4f}")
+
     os.makedirs("trained_models", exist_ok=True)
-    torch.save(gpt.state_dict(), "trained_models/gpt_model.pth")
+    torch.save(gpt.state_dict(), "trained_models/gpt_model_verdict.pth")
 
     plt.plot(train_losses, label="Train Loss", color="blue")
     plt.plot(val_losses, label="Validation Loss", color="red")

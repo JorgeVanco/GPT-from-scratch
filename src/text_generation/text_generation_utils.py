@@ -2,13 +2,13 @@ import torch
 import tiktoken
 
 
-def text_to_tokens(text, tokenizer):
+def text_to_tokens(text, tokenizer) -> torch.Tensor:
     tokens = tokenizer.encode(text)
     tokens_tensor = torch.tensor(tokens).unsqueeze(0)
     return tokens_tensor
 
 
-def tokens_to_text(tokens, tokenizer):
+def tokens_to_text(tokens, tokenizer) -> str:
     return tokenizer.decode(tokens.squeeze().tolist())
 
 
@@ -25,12 +25,11 @@ def generate_text(
     encoder = tiktoken.get_encoding(tokenizer)
     context_encoded = text_to_tokens(context, encoder).to(device)
 
-    total_max_length = context_encoded.shape[1] + max_length
-
     context_length = model.context_length
 
-    for _ in range(total_max_length):
-        input_tokens = context_encoded[-context_length:]
+    for _ in range(max_length):
+        input_tokens = context_encoded[:, -context_length:]
+
         with torch.no_grad():
             logits = model(input_tokens)[:, -1, :]
 
@@ -53,5 +52,4 @@ def generate_text(
             break
 
         context_encoded = torch.cat((context_encoded, output_tokens), dim=1)
-
     return tokens_to_text(context_encoded, encoder)
