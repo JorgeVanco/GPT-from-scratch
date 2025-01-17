@@ -31,6 +31,8 @@ def train(
     global_step = -1
     tokens_seen = 0
 
+    text_table = wandb.Table(columns=["epoch", "tokens seen", "text"])
+
     model.train()
     for epoch in range(epochs):
         for input_batch, target_batch in tqdm(train_dataloader):
@@ -61,11 +63,15 @@ def train(
                     print(
                         f"\nEpoch {epoch+1}/{epochs} - Train loss: {train_loss:.4f} - Val loss: {val_loss:.4f}, Tokens seen: {tokens_seen}"
                     )
-                    print(
-                        generate_text(model, start_context, 50, device).replace(
-                            "\n", " "
-                        ),
+                    generated_text = generate_text(
+                        model, start_context, 50, device, top_k=10, temperature=0.7
+                    ).replace("\n", " ")
+                    text_table.add_data(epoch, tokens_seen, generated_text)
+                    text_table = wandb.Table(
+                        columns=text_table.columns, data=text_table.data
                     )
+                    wandb.log({"Generated Text Table": text_table})
+                    print(generated_text)
 
                 model.train()
     return train_losses, val_losses
