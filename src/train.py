@@ -54,7 +54,10 @@ def train(
                     )
                     train_losses.append(train_loss)
                     val_losses.append(val_loss)
-                    wandb.log({"train_loss": train_loss, "val_loss": val_loss})
+                    wandb.log(
+                        {"train_loss": train_loss, "val_loss": val_loss},
+                        step=tokens_seen,
+                    )
                     print(
                         f"\nEpoch {epoch+1}/{epochs} - Train loss: {train_loss:.4f} - Val loss: {val_loss:.4f}, Tokens seen: {tokens_seen}"
                     )
