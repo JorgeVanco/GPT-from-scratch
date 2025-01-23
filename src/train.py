@@ -14,6 +14,10 @@ from model import GPTModel
 from config import CHOOSE_MODEL, model_configs
 import matplotlib.pyplot as plt
 import wandb
+from loading_pretrained_weights import (
+    get_huggingface_gpt2,
+    load_weights,
+)
 
 
 def train(
@@ -119,16 +123,13 @@ if __name__ == "__main__":
 
     wandb.init(project="gpt2")
 
-    data_path = "data/the-verdict.txt"
-    download_data = True
+    useLora = True
+    use_gpt2_config = False
+    load_from_huggingface = True
+    CHOOSE_MODEL = "gpt2-small (124M)"
     start_context = "Every effort moves you"
-
-    if download_data:
-        # download_shakespeare(data_path)
-        download_the_verdict(data_path)
-
-    with open(data_path) as fp:
-        data = fp.read()
+    batch_size = 8
+    epochs = 10
 
     BASE_CONFIG = {
         "vocab_size": 50257,
@@ -137,16 +138,24 @@ if __name__ == "__main__":
         "qkv_bias": True,
     }
 
-    CHOOSE_MODEL = "gpt2-small (124M)"
-
     my_config = {
         "emb_dim": 200,
         "n_layers": 2,
         "n_heads": 4,
         "context_length": 16,
     }
-    my_config = None
-    if my_config is not None:
+
+    data_path = "data/the-verdict.txt"
+    download_data = True
+
+    if download_data:
+        # download_shakespeare(data_path)
+        download_the_verdict(data_path)
+
+    with open(data_path) as fp:
+        data = fp.read()
+
+    if my_config is not None and not use_gpt2_config:
         BASE_CONFIG.update(my_config)
     else:
         BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
@@ -159,14 +168,14 @@ if __name__ == "__main__":
         train_data,
         BASE_CONFIG["context_length"],
         BASE_CONFIG["context_length"],
-        2,
+        batch_size,
         shuffle=True,
     )
     test_dataloader = create_dataloader(
         test_data,
         BASE_CONFIG["context_length"],
         BASE_CONFIG["context_length"],
-        2,
+        batch_size,
         shuffle=False,
         drop_last=False,
     )
@@ -174,6 +183,9 @@ if __name__ == "__main__":
     print("Test dataloader length:", len(test_dataloader))
 
     gpt = GPTModel(BASE_CONFIG)
+    if load_from_huggingface and use_gpt2_config:
+        hf_model = get_huggingface_gpt2(CHOOSE_MODEL)
+        load_weights(gpt, hf_model, BASE_CONFIG)
     gpt.to(device)
 
     print("Model configuration:", BASE_CONFIG)
@@ -181,18 +193,33 @@ if __name__ == "__main__":
 
     torch.manual_seed(123)
     optimizer = torch.optim.AdamW(gpt.parameters(), lr=0.0004, weight_decay=0.1)
-    epochs = 10
-    train_losses, val_losses = train(
-        gpt,
-        train_dataloader,
-        test_dataloader,
-        epochs,
-        optimizer,
-        device,
-        eval_freq=5,
-        eval_iter=5,
-        start_context=start_context,
-    )
+
+    if useLora:
+        train_losses, val_losses = fine_tune_lora(
+            gpt,
+            train_dataloader,
+            test_dataloader,
+            epochs,
+            optimizer,
+            device,
+            rank=32,
+            alpha=64,
+            eval_freq=50,
+            eval_iter=50,
+            start_context=start_context,
+        )
+    else:
+        train_losses, val_losses = train(
+            gpt,
+            train_dataloader,
+            test_dataloader,
+            epochs,
+            optimizer,
+            device,
+            eval_freq=5,
+            eval_iter=5,
+            start_context=start_context,
+        )
 
     train_loss = calc_loss_loader(train_dataloader, gpt, device)
     val_loss = calc_loss_loader(test_dataloader, gpt, device)
