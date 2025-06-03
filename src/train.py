@@ -1,20 +1,20 @@
 import os
 import torch
 from tqdm import tqdm
-from data import (
+from src.data import (
     download_shakespeare,
     download_the_verdict,
     train_test_split,
     create_dataloader,
 )
-from finetuning import replace_linear_with_lora
-from training import calc_loss_batch, calc_loss_loader
-from text_generation import generate_text
-from model import GPTModel
-from config import CHOOSE_MODEL, model_configs
+from src.finetuning import replace_linear_with_lora
+from src.training import calc_loss_batch, calc_loss_loader
+from src.text_generation import generate_text
+from src.model import GPTModel
+from src.config import CHOOSE_MODEL, model_configs
 import matplotlib.pyplot as plt
 import wandb
-from loading_pretrained_weights import (
+from src.loading_pretrained_weights import (
     get_huggingface_gpt2,
     load_weights,
 )
@@ -31,6 +31,7 @@ def train(
     eval_iter=5,
     start_context="Every effort moves you",
 ) -> tuple:
+    """Train the GPT model on the provided data."""
     train_losses, val_losses = [], []
     global_step = -1
     tokens_seen = 0
@@ -94,6 +95,7 @@ def fine_tune_lora(
     eval_iter=5,
     start_context="Every effort moves you",
 ) -> tuple:
+    """Fine-tune the model using LoRA."""
     total_params = sum(p.numel() for p in gpt.parameters() if p.requires_grad)
     print(f"Total trainable parameters before: {total_params:,}")
 
@@ -145,14 +147,14 @@ if __name__ == "__main__":
         "context_length": 16,
     }
 
-    data_path = "data/the-verdict.txt"
-    download_data = True
+    DATA_PATH = "data/the-verdict.txt"
+    DOWNLOAD_DATA = True
 
-    if download_data:
+    if DOWNLOAD_DATA:
         # download_shakespeare(data_path)
-        download_the_verdict(data_path)
+        download_the_verdict(DATA_PATH)
 
-    with open(data_path) as fp:
+    with open(DATA_PATH, encoding="utf-8") as fp:
         data = fp.read()
 
     if my_config is not None and not use_gpt2_config:
