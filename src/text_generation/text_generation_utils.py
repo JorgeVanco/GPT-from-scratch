@@ -21,7 +21,7 @@ def generate_text(
     temperature=0.0,
     top_k=None,
     eos_id=None,
-) -> None:
+) -> str:
     encoder = tiktoken.get_encoding(tokenizer)
     context_encoded = text_to_tokens(context, encoder).to(device)
 

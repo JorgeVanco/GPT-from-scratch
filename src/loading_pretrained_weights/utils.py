@@ -10,8 +10,8 @@ def get_huggingface_gpt2(
         "gpt2-medium (355M)",
         "gpt2-large (774M)",
         "gpt2-xl (1558M)",
-    ]
-) -> None:
+    ],
+) -> GPT2Model:
     model_names = {
         "gpt2-small (124M)": "openai-community/gpt2",
         "gpt2-medium (355M)": "openai-community/gpt2-medium",
@@ -23,13 +23,13 @@ def get_huggingface_gpt2(
     return gpt_hf
 
 
-def assign_check(left, right):
+def assign_check(left, right) -> torch.Tensor:
     if left.shape != right.shape:
         raise ValueError(f"Shape mismatch. Left: {left.shape}, Right: {right.shape}")
     return torch.nn.Parameter(right.clone().detach())
 
 
-def load_weights(gpt, gpt_hf, BASE_CONFIG):
+def load_weights(gpt, gpt_hf, BASE_CONFIG) -> None:
 
     d = gpt_hf.state_dict()
 

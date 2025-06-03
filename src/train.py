@@ -1,6 +1,9 @@
 import os
 import torch
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import wandb
+
 from src.data import (
     download_shakespeare,
     download_the_verdict,
@@ -12,8 +15,6 @@ from src.training import calc_loss_batch, calc_loss_loader
 from src.text_generation import generate_text
 from src.model import GPTModel
 from src.config import CHOOSE_MODEL, model_configs
-import matplotlib.pyplot as plt
-import wandb
 from src.loading_pretrained_weights import (
     get_huggingface_gpt2,
     load_weights,
